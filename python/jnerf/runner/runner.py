@@ -8,6 +8,7 @@ from jnerf.dataset.dataset import jt_srgb_to_linear, jt_linear_to_srgb
 from jnerf.utils.config import get_cfg, save_cfg
 from jnerf.utils.registry import build_from_cfg,NETWORKS,SCHEDULERS,DATASETS,OPTIMS,SAMPLERS,LOSSES
 from jnerf.models.losses.mse_loss import img2mse, mse2psnr
+from jnerf.models.losses.distortion_loss import DistortionLoss, TestLoss
 from jnerf.dataset import camera_path
 import cv2
 
@@ -69,9 +70,10 @@ class Runner():
 
             pos, dir = self.sampler.sample(img_ids, rays_o, rays_d, is_training=True)
             network_outputs = self.model(pos, dir)
-            rgb = self.sampler.rays2rgb(network_outputs, training_background_color)
+            rgb, t, weights = self.sampler.rays2rgb(network_outputs, training_background_color)
 
             loss = self.loss_func(rgb, rgb_target)
+            loss += DistortionLoss()(t, weights)
             self.optimizer.step(loss)
             self.ema_optimizer.ema_step()
             if self.using_fp16:

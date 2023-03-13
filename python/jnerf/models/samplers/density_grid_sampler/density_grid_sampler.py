@@ -141,8 +141,8 @@ class DensityGridSampler(nn.Module):
         coords, rays_index, rays_numsteps, rays_numsteps_counter = self.rays_sampler.execute(
             rays_o=rays_o, rays_d=rays_d, density_grid_bitfield=self.density_grid_bitfield,
             metadata=self.dataset.metadata, imgs_id=img_ids, xforms=self.dataset.transforms_gpu)
-        coords_pos = coords[...,  :3].detach()
-        coords_dir = coords[..., 4: ].detach()
+        coords_pos = coords[..., 0:3].detach()
+        coords_dir = coords[..., 4:7].detach()
         if not is_training:
             self._coords = coords.detach()
             self._rays_numsteps = rays_numsteps.detach()
@@ -164,7 +164,7 @@ class DensityGridSampler(nn.Module):
         self._coords = coords_compacted.detach()
         self._rays_numsteps = rays_numsteps.detach()
         self._rays_numsteps_compacted = rays_numsteps_compacted.detach()
-        return coords_compacted[..., :3].detach(), coords_compacted[..., 4:].detach()
+        return coords_compacted[..., 0:3].detach(), coords_compacted[..., 4:7].detach()
     
     def rays2rgb(self, network_outputs, training_background_color=None, inference=False):
         if self.using_fp16:

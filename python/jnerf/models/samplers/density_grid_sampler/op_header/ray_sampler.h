@@ -19,7 +19,6 @@ __global__ void rays_sampler(
 	const Matrix<float, 3, 4> *training_xforms,
 	float near_distance,
 	default_rng_t rng
-
 )
 {
 	const uint32_t i = threadIdx.x + blockIdx.x * blockDim.x;
@@ -100,8 +99,7 @@ __global__ void rays_sampler(
 		uint32_t mip = mip_from_dt(dt, pos);
 		if (density_grid_occupied_at(pos, density_grid, mip))
 		{
-
-			coords_out(j)->set_with_optional_light_dir(warp_position(pos, aabb), warped_dir, warp_dt(dt), light_dir_warped, coords_out.stride_in_bytes);
+			coords_out(j)->set_with_optional_light_dir(warp_position(pos, aabb), warped_dir, warp_dt(dt), t, light_dir_warped, coords_out.stride_in_bytes);
 			++j;
 			t += dt;
 		}

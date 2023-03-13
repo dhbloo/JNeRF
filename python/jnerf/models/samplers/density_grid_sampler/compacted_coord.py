@@ -28,14 +28,14 @@ class CompactedCoord(Function):
     def execute(self, network_output, coords_in, rays_numsteps):
         # input
         # network_output num_elements x 4 fp16 maybe
-        # coords_in n_rays_per_batch x 7
+        # coords_in n_rays_per_batch x 8
         # rays_numsteps n_rays_per_batch x 2 [step ,base]
         # return 
-        # rgb_output n_rays_per_batch x 3
+        # coords_out n_rays_per_batch x 8
         compacted_numstep_counter=jt.zeros([1],'int32')
         compacted_rays_counter=jt.zeros([1],'int32')
         rays_numsteps_compacted=jt.empty(rays_numsteps.shape,'int32')
-        coords_out=jt.zeros([self.compacted_elements,7],'float32')
+        coords_out=jt.zeros([self.compacted_elements,8],'float32')
         coords_out,rays_numsteps_compacted ,compacted_rays_counter,compacted_numstep_counter= jt.code(inputs=[ network_output, coords_in,rays_numsteps],outputs=[coords_out,rays_numsteps_compacted,compacted_rays_counter,compacted_numstep_counter], 
         cuda_header=global_headers+self.density_grad_header+'#include "compacted_coord.h"', cuda_src=f"""
         #define grad_t in0_type
@@ -43,7 +43,6 @@ class CompactedCoord(Function):
         @alias(coords_in, in1)
         @alias(rays_numsteps,in2)
         @alias(coords_out,out0)
-      
         @alias(rays_numsteps_compacted,out1)
         @alias(compacted_rays_counter,out2)
         @alias(compacted_numstep_counter,out3)

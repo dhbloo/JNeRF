@@ -23,18 +23,19 @@ class RaySampler(Function):
         # rays_d n_rays_per_batch x 3
         # bitfield 128 x 128 x 128 x 5 / 8
         # return
-        # coords_out=[self.num_elements,7]
+        # coords_out=[self.num_elements,8] : (pos[3], dt, dir[3], t)
         # rays index : store rays is used ( not for -1)
         # rays_numsteps [0:step,1:base]
         jt.init.zero_(self.ray_numstep_counter)
-        coords_out = jt.empty((self.num_elements, 7), 'float32')
+        coords_out = jt.empty((self.num_elements, 8), 'float32')
         self.n_rays_per_batch=rays_o.shape[0]
         rays_index = jt.empty((self.n_rays_per_batch, 1), 'int32')
         rays_numsteps = jt.empty((self.n_rays_per_batch, 2), 'int32')
         coords_out, rays_index, rays_numsteps,self.ray_numstep_counter = jt.code(
-            inputs=[rays_o, rays_d, density_grid_bitfield, metadata, imgs_id, xforms], outputs=[coords_out,rays_index,rays_numsteps,self.ray_numstep_counter], 
-            cuda_header=global_headers+self.density_grad_header+'#include "ray_sampler.h"',  cuda_src=f"""
-     
+            inputs=[rays_o, rays_d, density_grid_bitfield, metadata, imgs_id, xforms], 
+            outputs=[coords_out,rays_index,rays_numsteps,self.ray_numstep_counter], 
+            cuda_header=global_headers+self.density_grad_header+'#include "ray_sampler.h"',  
+            cuda_src=f"""
         @alias(rays_o, in0)
         @alias(rays_d, in1)
         @alias(density_grid_bitfield,in2)
@@ -54,9 +55,27 @@ class RaySampler(Function):
         BoundingBox m_aabb = BoundingBox(Eigen::Vector3f::Constant({self.aabb_range[0]}), Eigen::Vector3f::Constant({self.aabb_range[1]}));
         float near_distance = {self.near_distance};
         float cone_angle_constant={self.cone_angle_constant};  
-        linear_kernel(rays_sampler,0,stream,
-            n_rays, m_aabb, num_elements,(Vector3f*)rays_o_p,(Vector3f*)rays_d_p, (uint8_t*)density_grid_bitfield_p,cone_angle_constant,(TrainingImageMetadata *)metadata_p,(uint32_t*)imgs_index_p,
-            (uint32_t*)ray_numstep_counter_p,((uint32_t*)ray_numstep_counter_p)+1,(uint32_t*)rays_index_p,(uint32_t*)rays_numsteps_p,PitchedPtr<NerfCoordinate>((NerfCoordinate*)coords_out_p, 1, 0, 0),(Eigen::Matrix<float, 3, 4>*) xforms_input_p,near_distance,rng);   
+        linear_kernel(
+            rays_sampler,
+            0,
+            stream,
+            n_rays, 
+            m_aabb, 
+            num_elements,
+            (Vector3f*)rays_o_p,
+            (Vector3f*)rays_d_p, 
+            (uint8_t*)density_grid_bitfield_p,
+            cone_angle_constant,
+            (TrainingImageMetadata *)metadata_p,
+            (uint32_t*)imgs_index_p,
+            (uint32_t*)ray_numstep_counter_p,
+            ((uint32_t*)ray_numstep_counter_p)+1,
+            (uint32_t*)rays_index_p,
+            (uint32_t*)rays_numsteps_p,
+            PitchedPtr<NerfCoordinate>((NerfCoordinate*)coords_out_p, 1, 0, 0),
+            (Eigen::Matrix<float, 3, 4>*) xforms_input_p,
+            near_distance,
+            rng);
 
         rng.advance();
 """)
