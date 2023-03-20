@@ -18,7 +18,6 @@ class CompactedCoord(Function):
         else:
             self.compacted_elements=self.num_elements//16
         ##activation 0:None 1:relu 2:sigmoid 3:exp
-        self.rgb_activation=2
         self.density_activation=3
         self.grad_type='float32'
         if using_fp16:
@@ -54,12 +53,25 @@ class CompactedCoord(Function):
         uint32_t padded_output_width=network_output_shape1;
         Array4f bg_color=Array4f( {self.bg_color[0]},{self.bg_color[1]},{self.bg_color[2]},1 );
         
-        ENerfActivation rgb_activation=ENerfActivation({self.rgb_activation});
         ENerfActivation density_activation=ENerfActivation({self.density_activation});
-        linear_kernel(compacted_coord<grad_t>,0,stream,
-            n_rays, m_aabb, compacted_elements,padded_output_width,bg_color,(grad_t*)network_output_p,rgb_activation,density_activation,
-            (NerfCoordinate*)coords_in_p,(NerfCoordinate*)coords_out_p,(uint32_t*)rays_numsteps_p,(uint32_t*)compacted_numstep_counter_p,(uint32_t*)rays_numsteps_compacted_p,(uint32_t*)compacted_rays_counter_p);
-           
+        linear_kernel(
+            compacted_coord<grad_t>,
+            0,
+            stream,
+            n_rays, 
+            m_aabb, 
+            compacted_elements,
+            padded_output_width,
+            bg_color,
+            (grad_t*)network_output_p,
+            density_activation,
+            (NerfCoordinate*)coords_in_p,
+            (NerfCoordinate*)coords_out_p,
+            (uint32_t*)rays_numsteps_p,
+            (uint32_t*)compacted_numstep_counter_p,
+            (uint32_t*)rays_numsteps_compacted_p,
+            (uint32_t*)compacted_rays_counter_p
+        );
 """)
         
         coords_out.compile_options =proj_options

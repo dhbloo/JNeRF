@@ -1,4 +1,4 @@
-#include"density_grid_sampler_header.h"
+#include"nerf_common.h"
 
 __global__ void mark_untrained_density_grid(const uint32_t n_elements, float *__restrict__ grid_out,
 											const uint32_t n_training_images,

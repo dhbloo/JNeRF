@@ -1,4 +1,4 @@
-#include"density_grid_sampler_header.h"
+#include "nerf_common.h"
 
 __global__ void ema_grid_samples_nerf(const uint32_t n_elements,
 									  float decay,

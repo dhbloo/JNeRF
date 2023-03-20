@@ -1,4 +1,103 @@
-#include"density_grid_sampler_header.h"
+#include "nerf_common.h"
+
+template <typename T>
+inline __device__ T warp_reduce(T val)
+{
+#pragma unroll
+	for (int offset = warpSize / 2; offset > 0; offset /= 2)
+	{
+		val += __shfl_xor_sync(0xffffffff, val, offset);
+	}
+
+	return val;
+}
+
+template <typename T, typename T_OUT, typename F>
+__global__ void block_reduce(
+	const uint32_t n_elements,
+	const F fun,
+	const T *__restrict__ input,
+	T_OUT *__restrict__ output,
+	const uint32_t n_blocks)
+{
+	const uint32_t sum_idx = blockIdx.x / n_blocks;
+	const uint32_t sub_blocks_idx = blockIdx.x % n_blocks;
+
+	const uint32_t i = threadIdx.x + sub_blocks_idx * blockDim.x;
+	const uint32_t block_offset = sum_idx * n_elements;
+
+	static __shared__ T_OUT sdata[32];
+
+	int lane = threadIdx.x % warpSize;
+	int wid = threadIdx.x / warpSize;
+
+	using T_DECAYED = std::decay_t<T>;
+
+	T_OUT val;
+	val = 0; // tmp
+	if (std::is_same<T_DECAYED, __half>::value || std::is_same<T_DECAYED, ::half>::value)
+	{
+		if (i < n_elements)
+		{
+			::half vals[8];
+			*(int4 *)&vals[0] = *((int4 *)input + i + block_offset);
+			val = fun((T)vals[0]) + fun((T)vals[1]) + fun((T)vals[2]) + fun((T)vals[3]) + fun((T)vals[4]) + fun((T)vals[5]) + fun((T)vals[6]) + fun((T)vals[7]);
+		}
+		else
+		{
+			val = 0;
+		}
+	}
+	else
+	if (std::is_same<T_DECAYED, float>::value)
+	{
+		if (i < n_elements)
+		{
+			float4 vals = *((float4 *)input + i + block_offset);
+			val = fun((T)vals.x) + fun((T)vals.y) + fun((T)vals.z) + fun((T)vals.w);
+		}
+		else
+		{
+			val = 0;
+		}
+	}
+	else if (std::is_same<T_DECAYED, double>::value)
+	{
+		if (i < n_elements)
+		{
+			double2 vals = *((double2 *)input + i + block_offset);
+			val = fun((T)vals.x) + fun((T)vals.y);
+		}
+		else
+		{
+			val = 0;
+		}
+	}
+	else
+	{
+		assert(false);
+		return;
+	}
+
+	val = warp_reduce(val);
+
+	if (lane == 0)
+		sdata[wid] = val;
+
+	__syncthreads();
+
+	if (wid == 0)
+	{
+		val = (threadIdx.x < blockDim.x / warpSize) ? sdata[lane] : 0;
+		val = warp_reduce(val);
+
+		if (lane == 0)
+		{
+			atomicAdd(&output[sum_idx], val);
+		}
+	}
+}
+
 
 template <typename T, typename T_OUT, typename F>
 void reduce_sum(T *device_pointer, F fun, T_OUT *workspace, uint32_t n_elements, cudaStream_t stream, uint32_t n_sums = 1)

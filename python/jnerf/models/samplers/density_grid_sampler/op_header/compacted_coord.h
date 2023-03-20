@@ -1,4 +1,4 @@
-#include"ray_sampler_header.h"
+#include "ray_sampler_header.h"
 
 
 template <typename TYPE>
@@ -9,7 +9,6 @@ __global__ void compacted_coord(
 	int padded_output_width,
 	Array4f background_color,
 	const TYPE *network_output,
-	ENerfActivation rgb_activation,
 	ENerfActivation density_activation,
 	const NerfCoordinate *__restrict__ coords_in,
 	NerfCoordinate *__restrict__ coords_out,
@@ -43,7 +42,6 @@ __global__ void compacted_coord(
 		}
 
 		const vector_t<TYPE, 4> local_network_output = *(vector_t<TYPE, 4> *)network_output;
-		const Array3f rgb = network_to_rgb(local_network_output, rgb_activation);
 		const Vector3f pos = unwarp_position(coords_in->pos.p, aabb);
 		const float dt = unwarp_dt(coords_in->dt);
 

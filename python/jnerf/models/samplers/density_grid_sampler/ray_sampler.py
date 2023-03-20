@@ -3,17 +3,30 @@ import jittor as jt
 from jittor import Function, exp, log
 import numpy as np
 import sys
+import enum
 from jnerf.ops.code_ops.global_vars import global_headers, proj_options
 jt.flags.use_cuda = 1
 
+
+class CoordWarpType(enum.Enum):
+    # x_warped = (x - aabb.x0) / (aabb.x1 - aabb.x0), x∈R^3
+    AABB = 0
+
+    # From MipNeRF360:
+    # z(x) = (x - aabb.x0) / (aabb.x1 - aabb.x0), x∈R^3
+    # x_warped = z(x) if |z(x)| <= 1 else (2 - 1 / |z(x)|)(z(x) / |z(x)|)
+    UNBOUNDED_SPHERE = 1
+
+
 class RaySampler(Function):
-    def __init__(self, density_grad_header, near_distance, cone_angle_constant, aabb_range=(-1.5, 2.5), n_rays_per_batch=4096, n_rays_step=1024):
+    def __init__(self, density_grad_header, near_distance, cone_angle_constant, aabb_range=(-1.5, 2.5), n_rays_per_batch=4096, n_rays_step=1024, coord_warp_type=CoordWarpType.AABB):
         self.density_grad_header = density_grad_header
         self.aabb_range = aabb_range
         self.near_distance = near_distance
         self.n_rays_per_batch = n_rays_per_batch
         self.num_elements = n_rays_per_batch*n_rays_step
         self.cone_angle_constant = cone_angle_constant
+        self.coord_warp_type = coord_warp_type
         self.path = os.path.join(os.path.dirname(__file__), '..', 'op_include')
         self.ray_numstep_counter = jt.zeros([2], 'int32')
 

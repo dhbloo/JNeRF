@@ -1,4 +1,4 @@
-#include"density_grid_sampler_header.h"
+#include"nerf_common.h"
 
 __global__ void generate_grid_samples_nerf_nonuniform(const uint32_t n_elements, default_rng_t rng, const uint32_t* step_p, BoundingBox aabb, const float *__restrict__ grid_in, NerfPosition *__restrict__ out, uint32_t *__restrict__ indices, uint32_t n_cascades, float thresh)
 {

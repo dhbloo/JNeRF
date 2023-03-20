@@ -1,11 +1,5 @@
-#include"ray_sampler_header.h"
+#include "ray_sampler_header.h"
 
-
-__device__ float unwarp_dt(float dt, int NERF_CASCADES, float MIN_CONE_STEPSIZE)
-{
-	float max_stepsize = MIN_CONE_STEPSIZE * (1 << (NERF_CASCADES - 1));
-	return dt * (max_stepsize - MIN_CONE_STEPSIZE) + MIN_CONE_STEPSIZE;
-}
 
 template <typename TYPE>
 __global__ void compute_rgbs(
@@ -21,9 +15,7 @@ __global__ void compute_rgbs(
 	float *__restrict__ t_output,				//rays samples t output
 	float *__restrict__ weights_output,			//rays samples weight output
 	uint32_t *__restrict__ numsteps_compacted_in,//rays offset and base counter after compact
-	const Array3f *bg_color_ptr,				//background color 
-	int NERF_CASCADES,							//num of density grid level
-	float MIN_CONE_STEPSIZE						//lower bound of step size
+	const Array3f *bg_color_ptr					//background color 
 	)
 {
 	const uint32_t i = threadIdx.x + blockIdx.x * blockDim.x;
@@ -52,11 +44,11 @@ __global__ void compute_rgbs(
 	for (; compacted_numsteps < numsteps; ++compacted_numsteps)
 	{
 		const vector_t<TYPE, 4> local_network_output = *(vector_t<TYPE, 4> *)network_output;
-		const Array3f rgb = network_to_rgb(local_network_output, rgb_activation);
 		const Vector3f pos = unwarp_position(coords_in.ptr->pos.p, aabb);
-		const float dt = unwarp_dt(coords_in.ptr->dt, NERF_CASCADES, MIN_CONE_STEPSIZE);
+		const float dt = unwarp_dt(coords_in.ptr->dt);
 
-		float density = network_to_density(float(local_network_output[3]), density_activation);
+		const float density = network_to_density(float(local_network_output[3]), density_activation);
+		const Array3f rgb = network_to_rgb(local_network_output, rgb_activation);
 
 		const float alpha = 1.f - __expf(-density * dt);
 		const float weight = alpha * T;
@@ -97,9 +89,7 @@ __global__ void compute_rgbs_grad(
 	Array3f *__restrict__ rgb_ray,				//RGB from forward calculation
 	float *__restrict__ weights_grad,			//dloss_dWeightoutput
 	float *__restrict__ weights,				//Weights from forward calculation
-	float *__restrict__ density_grid_mean,		//density_grid mean value,
-	int NERF_CASCADES,							//num of density grid level
-	float MIN_CONE_STEPSIZE						//lower bound of step size
+	float *__restrict__ density_grid_mean		//density_grid mean value,
 	)
 {
 
@@ -133,7 +123,7 @@ __global__ void compute_rgbs_grad(
 		
 		const vector_t<TYPE, 4> local_network_output = *(vector_t<TYPE, 4> *)network_output;
 		const Array3f rgb = network_to_rgb(local_network_output, rgb_activation);
-		float dt = unwarp_dt(coords_in.ptr->dt, NERF_CASCADES, MIN_CONE_STEPSIZE);
+		float dt = unwarp_dt(coords_in.ptr->dt);
 		float density = network_to_density(float(local_network_output[3]), density_activation);
 		const float transparency = __expf(-density * dt);
 		const float alpha = 1.f - transparency;
@@ -175,10 +165,8 @@ __global__ void compute_rgbs_inference(
 	ENerfActivation density_activation,			//activation of density in output 
 	PitchedPtr<NerfCoordinate> coords_in,		//network input,(xyz,dt,dir)
 	uint32_t *__restrict__ numsteps_in,			//rays offset and base counter
-	Array3f *__restrict__ rgb_output,						//rays rgb output
-	int NERF_CASCADES,							//num of density grid level
-	float MIN_CONE_STEPSIZE,					//lower bound of step size
-	float* __restrict__ alpha_output
+	Array3f *__restrict__ rgb_output,			//rays rgb output
+	float* __restrict__ alpha_output			//rays alpha output
 	)
 {
 	const uint32_t i = threadIdx.x + blockIdx.x * blockDim.x;
@@ -211,7 +199,7 @@ __global__ void compute_rgbs_inference(
 		const vector_t<TYPE, 4> local_network_output = *(vector_t<TYPE, 4> *)network_output;
 		const Array3f rgb = network_to_rgb(local_network_output, rgb_activation);
 		const Vector3f pos = unwarp_position(coords_in.ptr->pos.p, aabb);
-		const float dt = unwarp_dt(coords_in.ptr->dt, NERF_CASCADES, MIN_CONE_STEPSIZE);
+		const float dt = unwarp_dt(coords_in.ptr->dt);
 
 		float density = network_to_density(float(local_network_output[3]), density_activation);
 

@@ -98,7 +98,7 @@ class DensityGridSampler(nn.Module):
         inline constexpr __device__ __host__ float NERF_RENDERING_NEAR_DISTANCE() {{ return {self.NERF_RENDERING_NEAR_DISTANCE}f; }}
         inline constexpr __device__ __host__ uint32_t NERF_STEPS() {{ return {self.MAX_STEP}; }} // finest number of steps per unit length
         inline constexpr __device__ __host__ uint32_t NERF_CASCADES() {{ return {self.NERF_CASCADES}; }}
-        inline __device__ float NERF_MIN_OPTICAL_THICKNESS() {{ return  {self.NERF_MIN_OPTICAL_THICKNESS}f; }}
+        inline constexpr __device__ __host__ float NERF_MIN_OPTICAL_THICKNESS() {{ return {self.NERF_MIN_OPTICAL_THICKNESS}f; }}
         inline constexpr __device__ __host__ float SQRT3() {{ return 1.73205080757f; }}
         inline constexpr __device__ __host__ float STEPSIZE() {{ return (SQRT3() / NERF_STEPS()); }} // for nerf raymarch
         inline constexpr __device__ __host__ float MIN_CONE_STEPSIZE() {{ return STEPSIZE(); }}

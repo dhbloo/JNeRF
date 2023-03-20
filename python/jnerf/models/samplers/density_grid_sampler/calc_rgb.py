@@ -85,9 +85,7 @@ class CalcRgb(Function):
             (float*)t_output_p,
             (float*)weights_output_p,
             (uint32_t*)rays_numsteps_compacted_p,
-            (Array3f*)training_background_color_p,
-            NERF_CASCADES(),
-            MIN_CONE_STEPSIZE()
+            (Array3f*)training_background_color_p
         );
         """)
 
@@ -143,9 +141,7 @@ class CalcRgb(Function):
             (Array3f*)rgb_output_p,
             (float*)grad_weights_p,
             (float*)weights_output_p,
-            (float*)density_grid_mean_p,
-            NERF_CASCADES(),
-            MIN_CONE_STEPSIZE()
+            (float*)density_grid_mean_p
         );   
         """)
 
@@ -199,8 +195,6 @@ class CalcRgb(Function):
             PitchedPtr<NerfCoordinate>((NerfCoordinate*)coords_in_p, 1, 0, 0),
             (uint32_t*)rays_numsteps_p,
             (Array3f*)rgb_output_p,
-            NERF_CASCADES(),
-            MIN_CONE_STEPSIZE(),
             alpha_output_p
         );      
         """)

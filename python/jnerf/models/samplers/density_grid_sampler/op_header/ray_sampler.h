@@ -1,4 +1,4 @@
-#include"ray_sampler_header.h"
+#include "ray_sampler_header.h"
 
 
 __global__ void rays_sampler(
@@ -21,8 +21,7 @@ __global__ void rays_sampler(
 	default_rng_t rng
 )
 {
-	const uint32_t i = threadIdx.x + blockIdx.x * blockDim.x;
-	// i (0,n_rays)
+	const uint32_t i = threadIdx.x + blockIdx.x * blockDim.x; // i (0,n_rays)
 	if (i >= n_rays)
 		return;
 	uint32_t img = imgs_index[i];
@@ -99,7 +98,8 @@ __global__ void rays_sampler(
 		uint32_t mip = mip_from_dt(dt, pos);
 		if (density_grid_occupied_at(pos, density_grid, mip))
 		{
-			coords_out(j)->set_with_optional_light_dir(warp_position(pos, aabb), warped_dir, warp_dt(dt), t, light_dir_warped, coords_out.stride_in_bytes);
+			Vector3f warped_pos = warp_position(pos, aabb);
+			coords_out(j)->set_with_optional_light_dir(warped_pos, warped_dir, warp_dt(dt), t, light_dir_warped, coords_out.stride_in_bytes);
 			++j;
 			t += dt;
 		}
